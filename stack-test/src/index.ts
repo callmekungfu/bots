@@ -1,4 +1,4 @@
-import { Application } from 'probot' // eslint-disable-line no-unused-vars
+import { Application, Context } from 'probot' // eslint-disable-line no-unused-vars
 
 export = (app: Application) => {
   // app.on('issues.opened', async (context) => {
@@ -12,18 +12,31 @@ export = (app: Application) => {
   // https://probot.github.io/docs/development/
 
   app.on('issue_comment.created', async (context) => {
-    if (!context.payload.issue.url) {
-
+    const { payload } = context;
+    if (skipComment(context)) {
+      return;
     }
-    const commitComment = context.payload;
+    console.log(payload);
     const response = context.issue({
-      body: 'Thanks for testing!'
+      body: `**Stack Test Connected!**
+      
+      Applying Status Check now :)`
     })
     await context.github.issues.createComment(response)
-    console.log(commitComment);
+    await context.github.checks.create({
+      name: 'Stack Test Check',
+      repo: '',
+      head_sha: '',
+      owner: ''
+    })
   });
 
   app.on('pull_request.assigned', async (context) => {
     console.log(context.payload);
-  })
+  });
+}
+
+const skipComment = (context: Context) => {
+  const { payload } = context;
+  return !payload.issue.pull_request || payload.sender.type === 'Bot'
 }
