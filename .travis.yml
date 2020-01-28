@@ -1,4 +1,5 @@
 dist: xenial
+os: linux
 branches:
   only:
   - master
@@ -8,7 +9,7 @@ node_js:
 jobs:
   include:
   - script:
-    - cd bots/stack-test
+    - cd stack-test
     - npm install
     - npm run build
     name: "Build Bot"
