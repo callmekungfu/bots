@@ -11,8 +11,19 @@ export = (app: Application) => {
   // To get your app running against GitHub, see:
   // https://probot.github.io/docs/development/
 
-  app.on('commit_comment.created', async (context) => {
+  app.on('issue_comment.created', async (context) => {
+    if (!context.payload.issue.url) {
+
+    }
     const commitComment = context.payload;
+    const response = context.issue({
+      body: 'Thanks for testing!'
+    })
+    await context.github.issues.createComment(response)
     console.log(commitComment);
   });
+
+  app.on('pull_request.assigned', async (context) => {
+    console.log(context.payload);
+  })
 }
