@@ -21,13 +21,15 @@ export = (app: Application) => {
       body: `**Stack Test Connected!**
       
       Applying Status Check now :)`
-    })
+    });
+    await context.github
     await context.github.issues.createComment(response)
     await context.github.checks.create({
       name: 'Stack Test Check',
+      status: 'in_progress',
       repo: '',
       head_sha: '',
-      owner: ''
+      owner: '',
     })
   });
 
