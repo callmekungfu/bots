@@ -1,0 +1,15 @@
+dist: xenial
+os: linux
+branches:
+  only:
+  - master
+language: node_js
+node_js:
+- 12
+jobs:
+  include:
+  - script:
+    - cd stack-test
+    - npm install
+    - npm run build
+    name: "Build Bot"
