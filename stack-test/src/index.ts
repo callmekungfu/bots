@@ -17,25 +17,9 @@ export = (app: Application) => {
     await newCommentResolver(context);
   });
   
-  // app.on(PULL_REQUEST, async (context: Context) => {
-  //   const pr = context.payload.pull_request;
-  //   // console.log(context.payload);
-  //   console.log(await context.github.pulls.get({
-  //     owner: 'callmekungfu',
-  //     repo: 'secret-santa-for-facebook-messenger',
-  //     pull_number: 3
-  //   }));
-  //   try {
-  //     await context.github.checks.create({
-  //       head_sha: pr.head.sha,
-  //       name: 'They Should Pass First',
-  //       owner: context.payload.repository.owner.login,
-  //       repo: context.payload.repository.name,
-  //     });
-  //   } catch (e) {
-  //     console.error(e);
-  //   }
-  // });
+  app.on('pull_request.synchronize', async (context: Context) => {
+    console.log('sync');
+  });
 }
 
 /**

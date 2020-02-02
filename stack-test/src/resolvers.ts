@@ -9,56 +9,11 @@ export const newCommentResolver = async (context: Context) => {
   const action = bodyParser(body);
   // console.log('payload: ', context.payload);
   if (action?.action === UserActions.LINK_PULL) {
-    let linkCheckParams: IChecksForPR;
-    let createCheckParams: Octokit.ChecksCreateParams;
-    let linkPullParams: IGetPullRequest | undefined;
-    let selfPullParams: IGetPullRequest | undefined;
-    try {
-      linkPullParams = parseLink(body, ' link ');
-      selfPullParams = _parseLink(context.payload.issue.pull_request.html_url);
-    } catch (e) {
-      await createComment(`Sorry... Your link is unrecognizable`, context);
-      return;
-    }
-    
-    if (!linkPullParams) {
-      await createComment(`Sorry... Your link is unrecognizable`, context);
-      return;
-    }
+    await performLinkingAction(body, startTime, context);
+  }
 
-    const [
-      linkPull,
-      selfPull,
-    ] = await Promise.all([
-      fetchRepoData(linkPullParams, context),
-      fetchRepoData(selfPullParams, context)
-    ]);
-    console.log(selfPull);
-    linkCheckParams = {
-      owner: linkPullParams.owner,
-      repo: linkPullParams.repo,
-      ref: linkPull.head.ref
-    }
-    const linkChecks = await fetchCheckData(linkCheckParams, context);
-    createCheckParams = {
-      name: 'They Should Pass First',
-      owner: selfPullParams.owner,
-      repo: selfPullParams.repo,
-      head_sha: selfPull.head.sha,
-      conclusion: determineCheckConclusion(linkChecks),
-      started_at: startTime,
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-      details_url: body.split(' link ')[1],
-      output: determineCheckSummary(linkChecks),
-
-    }
-    console.log('checks: ', linkChecks.check_runs.map(cr => cr.conclusion).filter(r => !!r));
-    await createCheck(createCheckParams, context);
-
-    await createComment(`**Repository Connected!**
-    
-    Applying Status Check now :)`, context);
+  if (action?.action === UserActions.UPDATE) {
+    await performUpdateAction(startTime, context);
   }
 }
 
@@ -76,6 +31,112 @@ export const pullRequestResolver = async (context: Context) => {
   }
 }
 
+const performUpdateAction = async (startTime: string, context: Context) => {
+  let linkCheckParams: IChecksForPR;
+  let selfCheckParams: IChecksForPR;
+  let createCheckParams: Octokit.ChecksCreateParams;
+  let linkPullParams: IGetPullRequest | undefined;
+  let selfPullParams: IGetPullRequest | undefined;
+  let selfPull: Octokit.PullsGetResponse;
+  let linkPull: Octokit.PullsGetResponse;
+  let selfCheck: Octokit.ChecksListForRefResponse;
+  let linkChecks: Octokit.ChecksListForRefResponse;
+  const { repository } = context.payload;
+
+  selfPullParams = _parseLink(context.payload.issue.pull_request.html_url);
+  selfPull = await fetchRepoData(selfPullParams, context);
+  selfCheckParams = {
+    owner: repository.owner.login,
+    repo: repository.name,
+    ref: selfPull.head.ref
+  }
+  selfCheck = await fetchCheckData(selfCheckParams, context);
+  const check = selfCheck.check_runs.find(cr => cr.app.slug === 'they-have-to-pass-first');
+  if (!check) {
+    await createComment('**You do not have an active check yet!**\n\nRun `/stack-test link YOUR_PR_URL` to connect a repo', context);
+    return;
+  }
+  linkPullParams = _parseLink(check.details_url);
+  linkPull = await fetchRepoData(linkPullParams, context);
+  linkCheckParams = {
+    owner: linkPullParams.owner,
+    repo: linkPullParams.repo,
+    ref: linkPull.head.ref,
+  }
+  linkChecks = await fetchCheckData(linkCheckParams, context);
+  createCheckParams = {
+    name: 'They Should Pass First',
+    owner: selfPullParams.owner,
+    repo: selfPullParams.repo,
+    head_sha: selfPull.head.sha,
+    conclusion: determineCheckConclusion(linkChecks),
+    started_at: startTime,
+    status: 'completed',
+    completed_at: new Date().toISOString(),
+    details_url: check.details_url,
+    output: determineCheckSummary(linkChecks),
+  }
+  try {
+    await createCheck(createCheckParams, context);
+  } catch (e) {
+    await createComment(`Sorry... Failed to connect the pull request, try again later`, context);
+    return;
+  }
+  await createComment(`**Status Updated**`, context);
+}
+
+const performLinkingAction = async (body: string, startTime: string, context: Context) => {
+  let linkCheckParams: IChecksForPR;
+  let createCheckParams: Octokit.ChecksCreateParams;
+  let linkPullParams: IGetPullRequest | undefined;
+  let selfPullParams: IGetPullRequest | undefined;
+  try {
+    linkPullParams = parseLink(body, ' link ');
+    selfPullParams = _parseLink(context.payload.issue.pull_request.html_url);
+  } catch (e) {
+    await createComment(`Sorry... Your url is unrecognizable`, context);
+    return;
+  }
+  
+  if (!linkPullParams) {
+    await createComment(`Sorry... Your url is unrecognizable`, context);
+    return;
+  }
+
+  const [
+    linkPull,
+    selfPull,
+  ] = await Promise.all([
+    fetchRepoData(linkPullParams, context),
+    fetchRepoData(selfPullParams, context)
+  ]);
+  linkCheckParams = {
+    owner: linkPullParams.owner,
+    repo: linkPullParams.repo,
+    ref: linkPull.head.ref
+  }
+  const linkChecks = await fetchCheckData(linkCheckParams, context);
+  createCheckParams = {
+    name: 'They Should Pass First',
+    owner: selfPullParams.owner,
+    repo: selfPullParams.repo,
+    head_sha: selfPull.head.sha,
+    conclusion: determineCheckConclusion(linkChecks),
+    started_at: startTime,
+    status: 'completed',
+    completed_at: new Date().toISOString(),
+    details_url: body.split(' link ')[1],
+    output: determineCheckSummary(linkChecks),
+  }
+  try {
+    await createCheck(createCheckParams, context);
+  } catch (e) {
+    await createComment(`Sorry... Failed to connect the pull request, try again later`, context);
+    return;
+  }
+  await createComment(`**Pull Request Connected!**`, context);
+}
+
 const fetchRepoData = async (query: IGetPullRequest | undefined, context: Context) => {
   if (!query) {
     throw Error('No pull request params found');
@@ -84,7 +145,7 @@ const fetchRepoData = async (query: IGetPullRequest | undefined, context: Contex
 }
 
 const determineCheckConclusion = (checks: Octokit.ChecksListForRefResponse) => {
-  const res = checks.check_runs.map(cr => cr.conclusion).filter(r => 'success')
+  const res = checks.check_runs.map(cr => cr.conclusion).filter(r => r !== 'success')
   if (res.length > 0) {
     return 'action_required'
   }
@@ -130,6 +191,15 @@ const bodyParser = (body: string): IUserAction | undefined => {
       action: UserActions.LINK_PULL,
     }
   }
+
+  if (body.includes('update')) {
+    console.log('update action called');
+    
+    return {
+      action: UserActions.UPDATE,
+    }
+  }
+
   return undefined;
 }
 

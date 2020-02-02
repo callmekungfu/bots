@@ -1,6 +1,7 @@
 export enum UserActions {
   LINK_PULL,
-  UNLINK_PULL
+  UNLINK_PULL,
+  UPDATE
 }
 
 export interface IUserAction {
