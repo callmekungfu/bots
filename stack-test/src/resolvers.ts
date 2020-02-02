@@ -7,7 +7,6 @@ export const newCommentResolver = async (context: Context) => {
   const startTime: string = new Date().toISOString();
   const { body } = context.payload.comment
   const action = bodyParser(body);
-  // console.log('payload: ', context.payload);
   if (action?.action === UserActions.LINK_PULL) {
     await performLinkingAction(body, startTime, context);
   }
@@ -142,6 +141,15 @@ const fetchRepoData = async (query: IGetPullRequest | undefined, context: Contex
     throw Error('No pull request params found');
   }
   return (await context.github.pulls.get(query)).data;
+}
+
+
+const determineCheckStatus = (checks: Octokit.ChecksListForRefResponse) => {
+  const res = checks.check_runs.map(cr => cr.conclusion).filter(r => r !== 'success')
+  if (res.length > 0) {
+    return 'action_required'
+  }
+  return 'success'
 }
 
 const determineCheckConclusion = (checks: Octokit.ChecksListForRefResponse) => {

@@ -16,10 +16,6 @@ export = (app: Application) => {
     }
     await newCommentResolver(context);
   });
-  
-  app.on('pull_request.synchronize', async (context: Context) => {
-    console.log('sync');
-  });
 }
 
 /**
