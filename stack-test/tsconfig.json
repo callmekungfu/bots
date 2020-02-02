@@ -20,7 +20,8 @@
     "watch": false
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "test/**/*"
   ],
   "compileOnSave": false
 }

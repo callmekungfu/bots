@@ -19,7 +19,7 @@
     "build:watch": "tsc -w -p tsconfig.json",
     "dev:watch": "sleep 3s && npm run dev",
     "dev": "nodemon --watch lib --exec \"npm run start\"",
-    "start": "probot run ./lib/index.js",
+    "start": "probot run ./lib/src/index.js",
     "lint": "standard **/*.ts --fix",
     "test": "jest && standard **/*.ts",
     "test:watch": "jest --watch --notify --notifyMode=change --coverage"

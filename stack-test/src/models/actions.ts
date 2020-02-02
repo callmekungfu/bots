@@ -4,5 +4,6 @@ export enum UserActions {
 }
 
 export interface IUserAction {
-  action: UserActions
+  action: UserActions;
+  query?: string;
 }
