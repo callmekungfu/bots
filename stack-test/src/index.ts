@@ -38,11 +38,19 @@ export = (app: Application) => {
   // });
 }
 
-
-
+/**
+ * Check if the command exists in the message, if not don't do anything
+ * 
+ * Check if the issue is a pull request
+ * 
+ * Check if the message is sent by a bot
+ * 
+ * @param context The execution context provided by github
+ */
 const skipComment = (context: Context) => {
   const { payload } = context;
-  if (!(payload.comment.body as string).includes('/they-have-to-pass-first')) {
+  const body: string = payload.comment.body;
+  if (!body.includes('/they-have-to-pass-first') && !body.includes('/stack-test')) {
     return true;
   }
   return !payload.issue.pull_request || payload.sender.type === 'Bot'
