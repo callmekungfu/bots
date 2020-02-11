@@ -1,10 +1,8 @@
-import { Application, Context } from 'probot' // eslint-disable-line no-unused-vars
+import { Application, Context, Octokit } from 'probot' // eslint-disable-line no-unused-vars
+import { newCommentResolver, pullRequestResolver } from './resolvers';
+import { PULL_REQUEST } from './models/events';
 
 export = (app: Application) => {
-  // app.on('issues.opened', async (context) => {
-  //   const issueComment = context.issue({ body: 'Thanks for opening this issue!' })
-  //   await context.github.issues.createComment(issueComment)
-  // })
   // For more information on building apps:
   // https://probot.github.io/docs/
 
@@ -16,29 +14,24 @@ export = (app: Application) => {
     if (skipComment(context)) {
       return;
     }
-    console.log(payload);
-    const response = context.issue({
-      body: `**Stack Test Connected!**
-      
-      Applying Status Check now :)`
-    });
-    await context.github
-    await context.github.issues.createComment(response)
-    await context.github.checks.create({
-      name: 'Stack Test Check',
-      status: 'in_progress',
-      repo: '',
-      head_sha: '',
-      owner: '',
-    })
-  });
-
-  app.on('pull_request.assigned', async (context) => {
-    console.log(context.payload);
+    await newCommentResolver(context);
   });
 }
 
+/**
+ * Check if the command exists in the message, if not don't do anything
+ * 
+ * Check if the issue is a pull request
+ * 
+ * Check if the message is sent by a bot
+ * 
+ * @param context The execution context provided by github
+ */
 const skipComment = (context: Context) => {
   const { payload } = context;
+  const body: string = payload.comment.body;
+  if (!body.includes('/they-have-to-pass-first') && !body.includes('/stack-test')) {
+    return true;
+  }
   return !payload.issue.pull_request || payload.sender.type === 'Bot'
 }

@@ -7,50 +7,19 @@ import myProbotApp from '../src'
 import { Probot } from 'probot'
 // Requiring our fixtures
 import payload from './fixtures/issues.opened.json'
+
+import { parseLink } from '../src/resolvers'
+
 const issueCreatedBody = { body: 'Thanks for opening this issue!' }
-const fs = require('fs')
-const path = require('path')
 
-describe('My Probot app', () => {
-  let probot: any
-  let mockCert: string
-
-  beforeAll((done: Function) => {
-    fs.readFile(path.join(__dirname, 'fixtures/mock-cert.pem'), (err: Error, cert: string) => {
-      if (err) return done(err)
-      mockCert = cert
-      done()
+describe('Command Parser', () => {
+  it('should parse command link ', () => {
+    const res = parseLink('/they-have-to-pass-first link https://github.com/callmekungfu/secret-santa-for-facebook-messenger/pull/3', ' link ')
+    expect(res).toEqual({
+      owner: 'callmekungfu',
+      repo: 'secret-santa-for-facebook-messenger',
+      pull_number: 3
     })
-  })
-
-  beforeEach(() => {
-    nock.disableNetConnect()
-    probot = new Probot({ id: 123, cert: mockCert })
-    // Load our app into probot
-    probot.load(myProbotApp)
-  })
-
-  test('creates a comment when an issue is opened', async (done) => {
-    // Test that we correctly return a test token
-    nock('https://api.github.com')
-      .post('/app/installations/2/access_tokens')
-      .reply(200, { token: 'test' })
-
-    // Test that a comment is posted
-    nock('https://api.github.com')
-      .post('/repos/hiimbex/testing-things/issues/1/comments', (body: any) => {
-        done(expect(body).toMatchObject(issueCreatedBody))
-        return true
-      })
-      .reply(200)
-
-    // Receive a webhook event
-    await probot.receive({ name: 'issues', payload })
-  })
-
-  afterEach(() => {
-    nock.cleanAll()
-    nock.enableNetConnect()
   })
 })
 

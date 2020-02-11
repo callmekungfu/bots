@@ -1,0 +1,1 @@
+export const PULL_REQUEST = ['pull_request.opened', 'pull_request.editted', 'pull_request.assigned', 'pull_request.synchronize'];
